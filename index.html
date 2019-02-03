@@ -1,0 +1,280 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Flights-Table</title>
+
+    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="loadingCircle.css">
+</head>
+<body>
+
+<div id="flightTableElement">
+    <div class="head">
+        <div class="highlighted">Вылет</div>
+        <div>Прилет</div>
+        <div>Задержка</div>
+        <div class="right">Поиск по номеру рейса: <input type="text"></div>
+        <table>
+            <thead>
+            <tr>
+                <th>Время</th>
+                <th>Номер рейса</th>
+                <th>Аэропорт</th>
+                <th>Авиакомпания</th>
+                <th>Самолет</th>
+                <th>Статус</th>
+            </tr>
+            </thead>
+        </table>
+    </div>
+    <div class="body">
+        <table>
+            <tbody>
+            </tbody>
+        </table>
+        <div class="tooltip" hidden >Извините, не удалось получить данные</div>
+        <div class="loadGif" hidden>
+            <div id="floatingCirclesG">
+                <div class="f_circleG" id="frotateG_01"></div>
+                <div class="f_circleG" id="frotateG_02"></div>
+                <div class="f_circleG" id="frotateG_03"></div>
+                <div class="f_circleG" id="frotateG_04"></div>
+                <div class="f_circleG" id="frotateG_05"></div>
+                <div class="f_circleG" id="frotateG_06"></div>
+                <div class="f_circleG" id="frotateG_07"></div>
+                <div class="f_circleG" id="frotateG_08"></div>
+            </div>
+        </div>
+    </div>
+    <div class="foot"></div>
+</div>
+
+<script>
+    "use strict";
+
+    //Виджет табо рейсов:
+    function FlightsTable(element) {
+        let controlTabs = element.querySelectorAll('.head div');
+        let tooltip = element.querySelector('.tooltip');
+        let loadGif = element.querySelector('.loadGif');
+
+        //Записи рейсов будет хранить в массивах:
+        let arrivingFlights = [];
+        let derivingFlights = [];
+
+        // Приватные методы работы табло:
+        // Показать вылетающие рейсы
+        function showDerivingFlights () {
+            element.querySelector('tbody').innerHTML = '';
+            loadGif.hidden = false;
+            tooltip.hidden = true;
+
+            // Метод getFlights запрашивает данные с сервера и заполняет HTML (fillTable).
+            getFlights('deriving').then( () => {
+                fillTable(derivingFlights);
+            }, () => {
+                fillTable([]);
+            });
+        }
+        // Метод showDerivingFlights делаем публичным для вызова из вне.
+        this.showDerivingFlights = showDerivingFlights;
+
+
+        // Показать прилетаюие рейсы
+        function showArrivingFlights () {
+            element.querySelector('tbody').innerHTML = '';
+            loadGif.hidden = false;
+            tooltip.hidden = true;
+
+            getFlights('arriving').then( () => {
+                fillTable(arrivingFlights);
+            }).catch( () => {
+                fillTable([]);
+            });
+        }
+
+        // Показать задержанные рейсы
+        function showDelayedFlights () {
+            element.querySelector('tbody').innerHTML = '';
+            tooltip.hidden = true;
+            loadGif.hidden = false;
+
+        // Запрос на сервер не отправляем, а ищем в сохраненных записях.
+            let delayedFlights = [];
+            for (let i = 0; i < arrivingFlights.length; i++) {
+                if (arrivingFlights[i].status === 'Delayed') {
+                    delayedFlights.push(arrivingFlights[i]);
+                }
+            }
+            for (let i = 0; i < derivingFlights.length; i++) {
+                if (derivingFlights[i].status === 'Delayed') {
+                    delayedFlights.push(derivingFlights[i]);
+                }
+            }
+            fillTable(delayedFlights, 'both');
+        }
+
+        // Поиск по номеру рейса:
+        function searchByFlight (name) {
+            element.querySelector('tbody').innerHTML = '';
+            tooltip.hidden = true;
+            loadGif.hidden = false;
+
+            let namedFlights = [];
+            for (let i = 0; i < arrivingFlights.length; i++) {
+                if (arrivingFlights[i].flightNumber === name) {
+                    namedFlights.push(arrivingFlights[i]);
+                }
+            }
+            for (let i = 0; i < derivingFlights.length; i++) {
+                if (derivingFlights[i].flightNumber === name) {
+                    namedFlights.push(derivingFlights[i]);
+                }
+            }
+            fillTable(namedFlights, 'both');
+        }
+
+        // Метод заполнения HTML
+        function fillTable(array, direction) {
+
+            // Обрабатываем исключения (записи отсутствуют по причине ошибки при обращении к серверу или
+            // не было найдено требуемых записей среди сохраненных данных.
+            if (!array.length) {
+                if (direction === 'both') {
+                    tooltip.textContent = 'Рейсов не найдено';
+                } else {
+                    tooltip.textContent = 'Извините, не удалось получить данные';
+                }
+                // Прячем иконку загрузки и показываем сообщение пользователю с задержкой, чтобы не было
+                // дерганий интерфейса (добавили элементы и сразу убрали).
+                setTimeout( () => {
+                    tooltip.hidden = false;
+                    loadGif.hidden = true;
+                }, 1500);
+                return;
+            }
+
+            // Формируем HTML строки tr, с данными о рйесах
+
+            for (let i = 0; i < array.length; i++) {
+                let ar = array[i];
+                element.querySelector('tbody').innerHTML += `<tr class="${direction}">` +
+                    `<td>${getTime(ar.time)}</td>` +
+                    `<td>${ar.flightNumber}</td>` +
+                    `<td>${ar.airport}${ar.airportIndex}</td>` +
+                    `<td>${ar.airline}</td>` +
+                    `<td>${ar.aircraft}</td>` +
+                    `<td>${translate(ar.status)}${getTime(ar.statusTime)}</td>` +
+                    `</tr>`;
+            }
+            loadGif.hidden = true;
+        }
+
+        // Вспомогательный метод для перевода слов
+        function translate(word) {
+            let book = {
+                'Landed': 'Совершил посадку в ',
+                'Estimated': 'Ожидается в ',
+                'Scheduled': 'По рассписанию',
+                'Delayed': 'Отложен до ',
+                'Canceled': 'Отменен',
+                'Departed': 'Отправляется в'
+            };
+            if (book[word]) word = book[word];
+            return word;
+        }
+
+        // Вспомогательный метод для перевода времени из формата 12.xx PM в 24.хх
+        function getTime (time) {
+            if (time === ' ') return '';
+            let index = time.indexOf('AM');
+            time = time.slice(0, -3);
+            let devider = time.indexOf(':');
+            let hours = time.slice(0, devider);
+            if (index === -1) {
+                hours = +hours + 12;
+            }
+            if (index !== -1 && hours === '12') {
+                hours = 0;
+            }
+            time = +hours + time.slice(devider);
+            return time;
+        }
+
+        //Асинхронная прцоедура запроса данных с сервера
+        function getFlights (direction) {   //dir: arriving deriving
+
+            return new Promise( (resolve, reject) => {
+
+                let options = {
+                    method: 'GET',
+                    headers: {
+                        'Content-Type': 'application/json; charset=UTF8'
+                    }
+                };
+
+                //отправляем запрос с параметрами options,
+                fetch(`/${direction}.json`, options).then((res) => {
+                    //console.log(res);
+                    if (res.ok) return res.json();
+                    throw new Error(`Error in fetch, status: ${res.status}, statusText: ${res.statusText}`);
+
+                // Если без ошибок, заполняем массив записей
+                }).then(res => {
+                    switch (direction) {
+                        case 'arriving': arrivingFlights = res;
+                        break;
+                        case 'deriving': derivingFlights = res;
+                        break;
+                    }
+                    resolve();
+                }).catch(err => {
+                    console.log('Could not get data from server. ', err);
+                    reject();
+                });
+            });
+        }
+
+        // Вешаем обработчкики на элементы управления таблом.
+        controlTabs[0].onclick = function (event) {
+            if (controlTabs[0].classList.contains('highlighted') ) return;
+            controlTabs[0].classList.add('highlighted');
+            controlTabs[1].classList.remove('highlighted');
+            controlTabs[2].classList.remove('highlighted');
+            showDerivingFlights();
+        };
+
+        controlTabs[1].onclick = function (event) {
+            if (controlTabs[1].classList.contains('highlighted') ) return;
+            controlTabs[1].classList.add('highlighted');
+            controlTabs[0].classList.remove('highlighted');
+            controlTabs[2].classList.remove('highlighted');
+            showArrivingFlights();
+        };
+
+        controlTabs[2].onclick = function (event) {
+            if (controlTabs[2].classList.contains('highlighted') ) return;
+            controlTabs[2].classList.add('highlighted');
+            controlTabs[0].classList.remove('highlighted');
+            controlTabs[1].classList.remove('highlighted');
+            showDelayedFlights();
+        };
+
+        let input = controlTabs[3].querySelector('input');
+        input.addEventListener('keypress', function (event) {
+            if (event.which === 13) {
+                searchByFlight(input.value);
+            }
+        })
+    }
+
+    let flightTable = new FlightsTable(document.getElementById('flightTableElement') );
+    flightTable.showDerivingFlights();
+
+</script>
+
+
+
+</body>
+</html>

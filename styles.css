@@ -1,0 +1,115 @@
+body {
+    font-family: Cambria;
+
+    margin-top: 0;
+}
+
+#flightTableElement {
+    width: 100%;
+
+}
+
+.foot {
+    padding: 5px;
+
+    background-color: #eeeeee;
+    border: 2px solid black;
+}
+
+.head {
+    position: fixed;
+    top: 0;
+
+    width: calc(100% - 16px);
+    padding-top: 8px;
+
+    background-color: white;
+}
+
+.body {
+    margin-top: 96px;
+
+    border-left: 2px solid black;
+    border-right: 2px solid black;
+}
+
+.head div {
+    display: inline-block;
+
+    width: 100px;
+    margin-right: 4px;
+    margin-left: 4px;
+
+    padding: 10px;
+    text-align: center;
+    line-height: 24px;
+
+    font-size: 1.2em;
+
+    border-top-right-radius: 5px;
+    border-top-left-radius: 5px;
+    border-top: 2px solid black;
+    border-left: 2px solid black;
+    border-right: 2px solid black;
+
+    background-color: lightgrey;
+
+    cursor: default;
+}
+
+.head div.highlighted {
+    position: relative;
+    top: 2px;
+    background-color: #eeeeee;
+}
+
+.head div.right {
+    position: absolute;
+    right: 0;
+
+    width: auto;
+
+    font-size: 1.0em;
+}
+
+.head table {
+    width: 100%;
+
+    border: 2px solid black;
+    background-color: #eeeeee;
+}
+
+.body table {
+    width: 100%;
+}
+
+td, th {
+    width: 12%;
+    text-align: left;
+}
+
+td {
+    padding: 20px;
+}
+
+th {
+    padding: 8px 20px;
+}
+
+td:nth-child(3), th:nth-child(3) {
+    width: 22%
+}
+
+td:nth-child(4), th:nth-child(4) {
+    width: 22%
+}
+
+td:nth-child(6), th:nth-child(6) {
+    width: 20%
+}
+
+.tooltip {
+    padding: 20px;
+    text-align: center;
+    font-size: 1.6em;
+}
